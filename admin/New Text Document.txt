@@ -1,0 +1,56 @@
+<?php
+session_start();
+require '../includes/db.php';
+
+if ($_SESSION['role'] !== 'admin') {
+    header('Location: ../auth/login.php');
+    exit();
+}
+
+// Get pending auctions
+$sql = "SELECT * FROM auctions WHERE status = 'pending'";
+$stmt = $pdo->query($sql);
+$auctions = $stmt->fetchAll();
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $auction_id = $_POST['auction_id'];
+    $action = $_POST['action'];
+
+    if ($action == 'approve') {
+        $sql = "UPDATE auctions SET status = 'approved' WHERE id = :auction_id";
+    } else {
+        $sql = "DELETE FROM auctions WHERE id = :auction_id";
+    }
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute(['auction_id' => $auction_id]);
+
+    echo "Auction updated!";
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Verification</title>
+    <link rel="stylesheet" href="../assets/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Verification</h1>
+        <ul>
+            <?php foreach ($auctions as $auction): ?>
+                <li>
+                    <?= htmlspecialchars($auction['produce']) ?> (<?= htmlspecialchars($auction['auction_date']) ?>)
+                    <form action="verify.php" method="POST">
+                        <input type="hidden" name="auction_id" value="<?= $auction['id'] ?>">
+                        <button type="submit" name="action" value="approve">Approve</button>
+                        <button type="submit" name="action" value="reject">Reject</button>
+                    </form>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+</body>
+</html>
